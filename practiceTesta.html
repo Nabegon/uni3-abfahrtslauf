@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>practiceTesta</title>
+        <style>
+            #field{
+                position: absolute;
+                width: 600px; 
+                height: 400px; 
+                border: 10px solid black;
+            }
+            .player{
+                position: absolute;
+                background-color: blue;
+            }
+            .gate{
+                position: absolute;
+                background: linear-gradient(to right, #ff0000 0%,
+                    #ff0000 10%, #ffffff 10%, #ffffff 90%, #ff0000 90%, #ff0000 100%);
+                z-index: -1;
+            }   
+        </style>
+    </head>
+    <body onload="init()">
+        <div>Use arrow keys to steer. Press ENTER to reset Game after Game Over</div>
+        <form name="form_count"><input name="counter" type="text" size="10"></form>
+        <br>
+        <div id="counter"></div>
+    <div id="field"></div>
+
+    <script>
+        class player{
+            constructor(hostElement, x){
+                this.hostElement = hostElement;
+                this.positionx = x;
+
+                this.HTMLElement = document.createElement('div');
+
+                this.HTMLElement.style.width = '40px';
+                this.HTMLElement.style.height = '40px';
+                
+                this.HTMLElement.style.top = '100px';
+                this.HTMLElement.style.left = '0px';
+                
+                // 初期設定値
+                this.HTMLElement.style.left = String(this.positionx) + 'px';
+               
+                this.HTMLElement.className = 'player';
+                this.hostElement.append(this.HTMLElement);
+            }
+            moveLeft() {
+                this.positionx = this.positionx - 10; //when press <-, move -10 px
+                this.HTMLElement.style.left = String(this.positionx) + 'px' //css element
+            }
+            // eventhandler
+            moveRight() {
+                this.positionx = this.positionx + 10;
+                this.HTMLElement.style.left = String(this.positionx) + 'px'
+            }
+            collision(){
+                // stop the game and say "game over"
+            }
+        }
+
+        class Gate{
+            constructor(hostElement, y, x){
+                this.hostElement = hostElement;
+                this.positiony = y;
+                this.positionx = x;
+
+                this.HTMLElement = document.createElement('div');
+                this.HTMLElement.style.width = '120px';
+                this.HTMLElement.style.height = '20px';
+                
+                // 初期設定値
+                this.HTMLElement.style.top = String(this.positiony) + 'px';
+                this.HTMLElement.style.left = String(this.positionx) + 'px';
+
+                this.HTMLElement.className = 'gate';
+                this.hostElement.append(this.HTMLElement);
+            }
+            moveUp(){
+                // Setintervalで呼び出されてPosition変わっていく
+                this.positiony -= 1;
+                this.HTMLElement.style.top = String(this.positiony) + 'px';
+            }
+            changeColor(){
+                if(this.positiony == 0){
+                    this.HTMLElement.style.background = "white";
+                }
+            }
+        }
+        
+        function init(){
+            // create instanse
+            var myGates = [];
+            var firstPosition = getRandom(50, 520); 
+                function getRandom(min, max) {
+                    return Math.floor( Math.random() * (max + 1 - min) ) + min;
+                }
+            myGates.push(new Gate(document.getElementById('field'), 380, firstPosition-45));
+
+            var myPlayer = new player(document.getElementById('field'), firstPosition);
+
+            // key function
+            document.addEventListener('keydown', function(e){
+                let sX = myPlayer.HTMLElement.style.left;
+                let sY = myPlayer.HTMLElement.style.top;
+
+                let x = Number(sX.substring(0, sX.length - 2)); // taking off 'px'
+                let y = Number(sY.substring(0, sY.length - 2));
+
+                switch(e.keyCode){
+                    case 37:
+                        myPlayer.moveLeft();
+                    break;
+                    case 39:
+                        myPlayer.moveRight();
+                    break;
+                    case 13:
+                        location.reload();
+                    break;
+                    default:
+                    break;
+                }
+                
+                if(x < 10){
+                    myPlayer.positionx = 10;
+                    document.form_count.counter.value = "game over";
+                }
+                if(x > 550){
+                    myPlayer.positionx = 550;
+                    document.form_count.counter.value = "game over";
+                }
+            });
+
+            // the gate moves up
+            // controle the setInterval. have to set the end of the function.
+            // otherwise it runs endless
+            var timerId = setInterval(function () {
+                for (let index = 0; index < myGates.length; index++) {
+                    let currentGate = myGates[index];
+                    currentGate.moveUp();
+                    
+                    // when reach the top, change the color
+                    currentGate.changeColor();
+                    
+                    // check the collosion when the gate is 100
+                    if(currentGate.positiony == 140){
+                            // index starts from 0, so +1 here 
+                            document.form_count.counter.value = index + 1;
+                            console.log("index: " + (index + 1)); 
+                            if((index + 1) > 17){
+                                document.form_count.counter.value = "goal";
+                                clearInterval(timerId);
+                            } 
+                        // inside or not?
+                        var xLeft = currentGate.positionx + 10;
+                        var xRight = xLeft+ 60;
+                        if( myPlayer.positionx < xLeft || myPlayer.positionx > xRight){
+                            document.form_count.counter.value = "game over";
+                            clearInterval(timerId);
+                        }
+                    }
+                    if(document.form_count.counter.value == "game over"){
+                        clearInterval(timerId);
+                    }
+                }
+            }, 20)
+            
+            // creating 18 gates
+            var countGate = 0;
+            var countup = function(){
+                console.log(countGate++);
+            }
+
+            var id = setInterval(function () {
+                countup();
+                if (countGate > 16 || document.form_count.counter.value == "game over"){ //count starts from 0. The first gate does not count, so 16
+                    clearInterval(id);
+                }
+                /*
+                Alle weiteren Tore sind zufällig nach 
+                links oder rechts versetzt, maximal um zwei Drittel
+                der Torbreite. -> getRandom(40, 200)
+                */
+                var result = getRandom(40, 200); 
+                function getRandom(min, max) {
+                    return Math.floor( Math.random() * (max + 1 - min) ) + min;
+                }
+                myGates.push(new Gate(document.getElementById('field'), 380, result));
+            }, 3000)
+        }
+    </script>
+    </body>
+</html>
